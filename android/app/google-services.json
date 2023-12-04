@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "108428877138",
+    "project_id": "flutter-chat-app-11370",
+    "storage_bucket": "flutter-chat-app-11370.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:108428877138:android:157d3923e32d431fd4ae8b",
+        "android_client_info": {
+          "package_name": "br.com.thallys.chatt_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC8Ig3y3-yZQhAmSM3U-oMR7iRvskJwYV8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

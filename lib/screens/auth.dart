@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
+final _firebase = FirebaseAuth.instance;
 
 class Auth extends StatefulWidget {
   const Auth({super.key});
@@ -13,12 +16,37 @@ class _AuthState extends State<Auth> {
   final _form = GlobalKey<FormState>();
 
   var _isLogin = true;
+  var _enteredEmail = '';
+  var _enteredPassword = '';
 
-  void _submit() {
+  void _submit() async {
     // o método vaidate retorna um booleno
     final isValid = _form.currentState!.validate();
 
-    if (isValid) {}
+    if (!isValid) {
+      return;
+    }
+
+    // essa função ativa o onSave que interage com todos os textField
+    _form.currentState!.save();
+    if (_isLogin) {
+      // log user in
+
+      try {
+        final userCredentials = await _firebase.createUserWithEmailAndPassword(
+            email: _enteredEmail, password: _enteredPassword);
+        print(userCredentials);
+        // o on antes define o tipo da excessão, isso deixa o código do erro igual ao da documentação do Firebase
+      } on FirebaseAuthException catch (error) {
+        if (error.code == 'email-already-in-use') {
+          // ...
+        }
+        ScaffoldMessenger.of(context).clearSnackBars();
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(error.message ?? 'Falha na autenticação'),
+        ));
+      }
+    } else {}
   }
 
   @override
@@ -64,6 +92,9 @@ class _AuthState extends State<Auth> {
                                 }
                                 return null;
                               },
+                              onSaved: (newValue) {
+                                _enteredEmail = newValue!;
+                              },
                             ),
                             TextFormField(
                               decoration: InputDecoration(labelText: 'Senha'),
@@ -73,6 +104,9 @@ class _AuthState extends State<Auth> {
                                   return 'Senha precisa ter pelo menos 6 caracteres';
                                 }
                                 return null;
+                              },
+                              onSaved: (newValue) {
+                                _enteredPassword = newValue!;
                               },
                             ),
                             const SizedBox(height: 12),
