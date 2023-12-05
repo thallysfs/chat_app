@@ -29,24 +29,28 @@ class _AuthState extends State<Auth> {
 
     // essa função ativa o onSave que interage com todos os textField
     _form.currentState!.save();
-    if (_isLogin) {
-      // log user in
 
-      try {
+    try {
+      if (_isLogin) {
+        // log user in
+        final userCredentials = await _firebase.signInWithEmailAndPassword(
+            email: _enteredEmail, password: _enteredPassword);
+      } else {
+        // register user
         final userCredentials = await _firebase.createUserWithEmailAndPassword(
             email: _enteredEmail, password: _enteredPassword);
         print(userCredentials);
-        // o on antes define o tipo da excessão, isso deixa o código do erro igual ao da documentação do Firebase
-      } on FirebaseAuthException catch (error) {
-        if (error.code == 'email-already-in-use') {
-          // ...
-        }
-        ScaffoldMessenger.of(context).clearSnackBars();
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(error.message ?? 'Falha na autenticação'),
-        ));
       }
-    } else {}
+      // o on antes define o tipo da excessão, isso deixa o código do erro igual ao da documentação do Firebase
+    } on FirebaseAuthException catch (error) {
+      if (error.code == 'email-already-in-use') {
+        // ...
+      }
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(error.message ?? 'Falha na autenticação'),
+      ));
+    }
   }
 
   @override
