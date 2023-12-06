@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:chatt_app/widgets/user_image_picker.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -22,6 +23,7 @@ class _AuthState extends State<Auth> {
   var _isLogin = true;
   var _enteredEmail = '';
   var _enteredPassword = '';
+  var _enteredUserName = '';
   File? _selectedImage;
   var _isLoading = false;
 
@@ -58,6 +60,16 @@ class _AuthState extends State<Auth> {
         // pegar imagem e inserir em uma var
         await storageRef.putFile(_selectedImage!);
         final imageUrl = await storageRef.getDownloadURL();
+
+        //salvar dados de usuário no firestore
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userCredentials.user!.uid)
+            .set({
+          'username': _enteredUserName,
+          'email': _enteredEmail,
+          'image_url': imageUrl
+        });
       }
       // o on antes define o tipo da excessão, isso deixa o código do erro igual ao da documentação do Firebase
     } on FirebaseAuthException catch (error) {
@@ -106,6 +118,7 @@ class _AuthState extends State<Auth> {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
+                            // só será exibido se não estiver na tela de login
                             if (!_isLogin)
                               UserImagePicker(onPickImage: ((pickedImage) {
                                 _selectedImage = pickedImage;
@@ -128,6 +141,24 @@ class _AuthState extends State<Auth> {
                                 _enteredEmail = newValue!;
                               },
                             ),
+                            if (!_isLogin)
+                              TextFormField(
+                                decoration:
+                                    const InputDecoration(labelText: 'Nome'),
+                                enableSuggestions: false,
+                                textCapitalization: TextCapitalization.none,
+                                validator: (value) {
+                                  if (value == null ||
+                                      value.trim().isEmpty ||
+                                      value.trim().length < 4) {
+                                    return 'Por favor use um nome válido (pelo menos 4 caracteres)';
+                                  }
+                                  return null;
+                                },
+                                onSaved: (newValue) {
+                                  _enteredUserName = newValue!;
+                                },
+                              ),
                             TextFormField(
                               decoration: InputDecoration(labelText: 'Senha'),
                               obscureText: true,
