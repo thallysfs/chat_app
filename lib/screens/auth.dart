@@ -1,3 +1,7 @@
+import 'dart:io';
+
+import 'package:chatt_app/widgets/user_image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -18,12 +22,14 @@ class _AuthState extends State<Auth> {
   var _isLogin = true;
   var _enteredEmail = '';
   var _enteredPassword = '';
+  File? _selectedImage;
+  var _isLoading = false;
 
   void _submit() async {
     // o método vaidate retorna um booleno
     final isValid = _form.currentState!.validate();
 
-    if (!isValid) {
+    if (!isValid || _isLogin && _selectedImage == null) {
       return;
     }
 
@@ -31,6 +37,10 @@ class _AuthState extends State<Auth> {
     _form.currentState!.save();
 
     try {
+      setState(() {
+        _isLoading = true;
+      });
+
       if (_isLogin) {
         // log user in
         final userCredentials = await _firebase.signInWithEmailAndPassword(
@@ -39,7 +49,15 @@ class _AuthState extends State<Auth> {
         // register user
         final userCredentials = await _firebase.createUserWithEmailAndPassword(
             email: _enteredEmail, password: _enteredPassword);
-        print(userCredentials);
+        // upload de imagem
+        final storageRef = FirebaseStorage.instance
+            .ref()
+            .child('user_images')
+            .child('${userCredentials.user!.uid}.jpeg');
+
+        // pegar imagem e inserir em uma var
+        await storageRef.putFile(_selectedImage!);
+        final imageUrl = await storageRef.getDownloadURL();
       }
       // o on antes define o tipo da excessão, isso deixa o código do erro igual ao da documentação do Firebase
     } on FirebaseAuthException catch (error) {
@@ -47,9 +65,15 @@ class _AuthState extends State<Auth> {
         // ...
       }
       ScaffoldMessenger.of(context).clearSnackBars();
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(error.message ?? 'Falha na autenticação'),
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error.message ?? 'Falha na autenticação'),
+        ),
+      );
+
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
@@ -82,8 +106,12 @@ class _AuthState extends State<Auth> {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
+                            if (!_isLogin)
+                              UserImagePicker(onPickImage: ((pickedImage) {
+                                _selectedImage = pickedImage;
+                              })),
                             TextFormField(
-                              decoration: InputDecoration(
+                              decoration: const InputDecoration(
                                   labelText: 'Endereço de e-mail'),
                               keyboardType: TextInputType.emailAddress,
                               autocorrect: false,
@@ -114,25 +142,28 @@ class _AuthState extends State<Auth> {
                               },
                             ),
                             const SizedBox(height: 12),
-                            ElevatedButton(
-                              onPressed: _submit,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Theme.of(context)
-                                    .colorScheme
-                                    .primaryContainer,
+                            if (_isLoading) const CircularProgressIndicator(),
+                            if (!_isLoading)
+                              ElevatedButton(
+                                onPressed: _submit,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Theme.of(context)
+                                      .colorScheme
+                                      .primaryContainer,
+                                ),
+                                child: Text(_isLogin ? 'Login' : 'Cadastrar'),
                               ),
-                              child: Text(_isLogin ? 'Login' : 'Cadastrar'),
-                            ),
-                            TextButton(
-                              onPressed: () {
-                                setState(() {
-                                  _isLogin = !_isLogin;
-                                });
-                              },
-                              child: Text(_isLogin
-                                  ? 'Criar uma conta'
-                                  : 'Já tenho uma conta'),
-                            ),
+                            if (!_isLoading)
+                              TextButton(
+                                onPressed: () {
+                                  setState(() {
+                                    _isLogin = !_isLogin;
+                                  });
+                                },
+                                child: Text(_isLogin
+                                    ? 'Criar uma conta'
+                                    : 'Já tenho uma conta'),
+                              ),
                           ],
                         )),
                   ),
