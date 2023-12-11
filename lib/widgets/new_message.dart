@@ -18,14 +18,27 @@ class _NewMessageState extends State<NewMessage> {
     super.dispose();
   }
 
-  void _submitMessage() {
+  void _submitMessage() async {
     final enteredMessage = _messageController.text;
 
     if (enteredMessage.trim().isEmpty) {
       return;
     }
 
+    // método para tirar o foco e baixar o teclado
+    FocusScope.of(context).unfocus();
+
+    // limpar a mensagem
+    _messageController.clear();
+
+    // pegar usuário que está logado
     final user = FirebaseAuth.instance.currentUser!;
+
+    // pegar dados da collection user usando o id
+    final userData = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .get();
 
     // send to Firebase
     // essa estratégia de adicionar, faz com que o firebase crie o nome do documento
@@ -34,9 +47,9 @@ class _NewMessageState extends State<NewMessage> {
       'text': enteredMessage,
       'createdAt': Timestamp.now(),
       'userId': user.uid,
+      'username': userData.data()!['username'],
+      'userImage': userData.data()!['image_url'],
     });
-
-    _messageController.clear();
   }
 
   @override
